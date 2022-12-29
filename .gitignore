@@ -15,3 +15,10 @@ temp/
 testrun/*
 .~lock*
 *.pkl
+interactive_console_output.xml
+output.xml
+log.html
+playwright-log.txt
+report.html
+geckodriver.log
+browser/
