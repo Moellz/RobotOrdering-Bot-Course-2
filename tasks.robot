@@ -25,6 +25,8 @@ Library             RPA.PDF
 Library             RPA.Robocorp.Vault
 Library             RPA.HTTP
 Library             RPA.Tables
+Library             RPA.Archive
+Library             RPA.FileSystem
 
 
 *** Variables ***
@@ -49,7 +51,7 @@ Order Robots
         Embed Robot Screenshot into PDF of receipt    ${screenshot}    ${pdf}
         Order another Robot
     END
-#    ZIP receipts and delete individual files
+    ZIP receipts and delete individual files
 
 
 *** Keywords ***
@@ -68,9 +70,9 @@ Get Orders File
 Open Browser on Page
     [Arguments]    ${url}
     #show GUI for Testing purposes
-    Open Browser    ${url}    pause_on_failure=False
+#    Open Browser    ${url}    pause_on_failure=False
     #no GUI for Production
-#    New Page    ${url}
+    New Page    ${url}
     #change Browser Timeout from 10s to 3s, so that a misbehaving order website slow down execution too much
     Set Browser Timeout    3s
 
@@ -117,3 +119,7 @@ Embed Robot Screenshot into PDF of receipt
 
 Order another Robot
     Click    id=order-another
+
+ZIP receipts and delete individual files
+    Archive Folder With Zip    ${receipt_pdf_folder}    ${OUTPUT_DIR}/receipts.zip
+    Remove Directory    ${receipt_pdf_folder}    recursive=True
