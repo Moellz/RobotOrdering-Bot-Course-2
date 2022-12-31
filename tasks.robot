@@ -19,8 +19,7 @@ Documentation       Robot to complete robocorp certificate level II
 ...                 Store the local vault file in the robot project repository so that it does not require manual setup.
 ...                 It should be possible to get the robot from the public GitHub repository and run it without manual setup.
 
-#Robot shouldn't take a screenshot, whenever the order website misbehaves
-Library             RPA.Browser.Playwright    run_on_failure=None
+Library             RPA.Browser.Playwright
 Library             RPA.PDF
 Library             RPA.Robocorp.Vault
 Library             RPA.HTTP
@@ -31,8 +30,8 @@ Library             RPA.Dialogs
 
 
 *** Variables ***
-#switch for debugging and showing browser GUI; 1= Debug mode
-${debug}                    0
+#switch for showing browser GUI; 1= show GUI
+${GUI}                      0
 
 ${csv_file_path}            ${OUTPUT_DIR}/downloads/orders.csv
 ${receipt_pdf_folder}       ${OUTPUT_DIR}/receipts
@@ -78,15 +77,13 @@ Get Orders File
 
 Open Browser on Page
     [Arguments]    ${url}
-    IF    ${debug} == 1
+    IF    ${GUI} == 1
         #show GUI for Testing purposes
         Open Browser    ${url}    pause_on_failure=False
     ELSE
         #no GUI for Production
         New Page    ${url}
     END
-    #change Browser Timeout from 10s to 3s, so that a misbehaving order website slow down execution too much
-    Set Browser Timeout    3s
 
 Deal with Popup
     Click    text=OK
@@ -106,7 +103,10 @@ Preview the Robot
     Click    id=preview
 
 Try to place Order
+    #Prevent the Browser from taking unnecessary screenshots, if the order page misbehaves
+    ${default kw}=    Register Keyword To Run On Failure    NONE
     Wait Until Keyword Succeeds    ${retry}    ${retry_interval}    Place Order and check that receipt is shown
+    Register Keyword To Run On Failure    ${default kw}
 
 Place Order and check that receipt is shown
     Click    id=order
