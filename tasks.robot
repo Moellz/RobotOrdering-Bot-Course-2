@@ -19,17 +19,20 @@ Documentation       Robot to complete robocorp certificate level II
 ...                 Store the local vault file in the robot project repository so that it does not require manual setup.
 ...                 It should be possible to get the robot from the public GitHub repository and run it without manual setup.
 
-#Robot shouldn't take a screenshot, whenever the order website misbehaves
-Library             RPA.Browser.Playwright    run_on_failure=None
+Library             RPA.Browser.Playwright
 Library             RPA.PDF
 Library             RPA.Robocorp.Vault
 Library             RPA.HTTP
 Library             RPA.Tables
 Library             RPA.Archive
 Library             RPA.FileSystem
+Library             RPA.Dialogs
 
 
 *** Variables ***
+#switch for showing browser GUI; 1= show GUI
+${GUI}                      0
+
 ${csv_file_path}            ${OUTPUT_DIR}/downloads/orders.csv
 ${receipt_pdf_folder}       ${OUTPUT_DIR}/receipts
 ${retry}                    5x
@@ -38,9 +41,9 @@ ${retry_interval}           0.5s
 
 *** Tasks ***
 Order Robots
-    ${link_to_order}=    Read Order Link from Vault
+    ${URL_to_order}=    Read Order URL from Vault
     ${orders}=    Get Orders File
-    Open Browser on Page    ${link_to_order}
+    Open Browser on Page    ${URL_to_order}
     FOR    ${order_row}    IN    @{orders}
         Deal with Popup
         Fill out Order Form    ${order_row}
@@ -55,13 +58,18 @@ Order Robots
 
 
 *** Keywords ***
-Read Order Link from Vault
+Read Order URL from Vault
     ${secret}=    Get Secret    robots
-    RETURN    ${secret}[link_robot_orders]
+    RETURN    ${secret}[URL_robot_orders]
 
 Get Orders File
+    Add heading    What's the URL for the orders.csv File?
+    Add heading    maybe: https://robotsparebinindustries.com/orders.csv    size=Small
+    Add text input    URL    label=Enter URL here
+    ${result}=    Run dialog    on_top=True
+
     RPA.HTTP.Download
-    ...    https://robotsparebinindustries.com/orders.csv
+    ...    ${result.URL}
     ...    ${csv_file_path}
     ...    overwrite=True
     ${table}=    Read table from CSV    ${csv_file_path}    header=True
@@ -69,12 +77,13 @@ Get Orders File
 
 Open Browser on Page
     [Arguments]    ${url}
-    #show GUI for Testing purposes
-#    Open Browser    ${url}    pause_on_failure=False
-    #no GUI for Production
-    New Page    ${url}
-    #change Browser Timeout from 10s to 3s, so that a misbehaving order website slow down execution too much
-    Set Browser Timeout    3s
+    IF    ${GUI} == 1
+        #show GUI for Testing purposes
+        Open Browser    ${url}    pause_on_failure=False
+    ELSE
+        #no GUI for Production
+        New Page    ${url}
+    END
 
 Deal with Popup
     Click    text=OK
@@ -94,7 +103,10 @@ Preview the Robot
     Click    id=preview
 
 Try to place Order
+    #Prevent the Browser from taking unnecessary screenshots, if the order page misbehaves
+    ${default kw}=    Register Keyword To Run On Failure    NONE
     Wait Until Keyword Succeeds    ${retry}    ${retry_interval}    Place Order and check that receipt is shown
+    Register Keyword To Run On Failure    ${default kw}
 
 Place Order and check that receipt is shown
     Click    id=order
